@@ -15,6 +15,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', type=str, default='models/yolov7_backbone_weights.pth', help='initial weights path')
     parser.add_argument('--hyp', type=str, default='data/hyp.yaml', help='hyperparameters path')
+    parser.add_argument('--dataset', type=str, default='Pascal2007')
     parser.add_argument('--epochs', type=int, default=300)
     parser.add_argument('--steps', type=int, default=10)
     parser.add_argument('--batch-size', type=int, default=8, help='total batch size for all GPUs')
@@ -35,8 +36,8 @@ if __name__ == '__main__':
         param.requires_grad = False
 
     # Trainloader & Testloader
-    trainDataset = yoloDataset("Pascal2007", opt.img_size, dataset_property="aeroplane_train")
-    valDataset = yoloDataset("Pascal2007", opt.img_size, dataset_property="aeroplane_val")
+    trainDataset = yoloDataset(opt.dataset, opt.img_size, dataset_property="aeroplane_train")
+    valDataset = yoloDataset(opt.dataset, opt.img_size, dataset_property="aeroplane_val")
     trainDataloader = DataLoader(trainDataset, batch_size=1, shuffle=True)
     valDataloader = DataLoader(valDataset, batch_size=1, shuffle=True)
 
