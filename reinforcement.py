@@ -23,7 +23,7 @@ GAMMA = 0.90
 
 transform = transforms.Compose([
             transforms.ToPILImage(),
-            transforms.Resize((640, 640)),
+            transforms.Resize((256, 256)),
             transforms.ToTensor(),
             transforms.Normalize((0.5, 0.5, 0.5),(0.5, 0.5, 0.5))  #  numbers here need to be adjusted in future
 ])

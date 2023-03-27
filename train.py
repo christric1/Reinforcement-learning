@@ -1,5 +1,4 @@
 import argparse
-import yaml
 from tqdm import tqdm
 
 from reinforcement import *
@@ -20,7 +19,7 @@ if __name__ == '__main__':
     parser.add_argument('--steps', type=int, default=10)
     parser.add_argument('--batch-size', type=int, default=16, help='total batch size for all GPUs')
     parser.add_argument('--phi', type=str, default='l', help='type of yolov7')
-    parser.add_argument('--img-size', type=int, default=[640, 640], help='image sizes')
+    parser.add_argument('--img-size', type=int, default=[256, 256], help='image sizes')
 
     opt = parser.parse_args()
 
@@ -29,7 +28,7 @@ if __name__ == '__main__':
     print("device: ", device)
 
     # Create dqn model & freeze backbone weight
-    obs_dim, action_dim = 20*20*1024 + 6*4, 6
+    obs_dim, action_dim = 8*8*1024 + 6*4, 6
     backbone = Backbone(transition_channels=32, block_channels=32, n=4, phi='l', pretrained=True).to(device)
     agent = DQNAgent(obs_dim, action_dim, opt.batch_size, device)
     for param in backbone.parameters():
