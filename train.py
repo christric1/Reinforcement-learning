@@ -176,6 +176,7 @@ if __name__ == '__main__':
                     offset, region_image, size_mask, region_mask = get_crop_image_and_mask(imgShape, offset,
                                                                     region_image, size_mask, action)
                     # Get next state
+                    history_vector = update_history_vector(history_vector, action).to(device)
                     next_state = get_state(region_image, history_vector, backbone, device)
                     
                     # find the max bounding box in the region image
