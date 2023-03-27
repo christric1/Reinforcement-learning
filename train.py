@@ -187,8 +187,12 @@ if __name__ == '__main__':
                 # Move to the next state
                 state = next_state
 
+                if done:
+                    break
+
             batchIou.append(iou)
-        
+
+        # Print result
         print("IOU : ", np.mean(batchIou))
     
     # End training ---------------------------------------------------------
