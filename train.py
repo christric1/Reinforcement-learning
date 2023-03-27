@@ -15,10 +15,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', type=str, default='models/yolov7_backbone_weights.pth', help='initial weights path')
     parser.add_argument('--hyp', type=str, default='data/hyp.yaml', help='hyperparameters path')
-    parser.add_argument('--dataset', type=str, default='Pascal2007')
+    parser.add_argument('--dataset-path', type=str, default='Pascal2007/VOCtrainval_06-Nov-2007/VOCdevkit')
     parser.add_argument('--epochs', type=int, default=300)
     parser.add_argument('--steps', type=int, default=10)
-    parser.add_argument('--batch-size', type=int, default=8, help='total batch size for all GPUs')
+    parser.add_argument('--batch-size', type=int, default=16, help='total batch size for all GPUs')
     parser.add_argument('--phi', type=str, default='l', help='type of yolov7')
     parser.add_argument('--img-size', type=int, default=[640, 640], help='image sizes')
 
@@ -26,7 +26,6 @@ if __name__ == '__main__':
 
     # Device
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    device = 'cpu'
 
     # Create dqn model & freeze backbone weight
     obs_dim, action_dim = 20*20*1024 + 6*4, 6
@@ -36,8 +35,8 @@ if __name__ == '__main__':
         param.requires_grad = False
 
     # Trainloader & Testloader
-    trainDataset = yoloDataset(opt.dataset, opt.img_size, dataset_property="aeroplane_train")
-    valDataset = yoloDataset(opt.dataset, opt.img_size, dataset_property="aeroplane_val")
+    trainDataset = yoloDataset(opt.dataset_path, opt.img_size, dataset_property="aeroplane_train")
+    valDataset = yoloDataset(opt.dataset_path, opt.img_size, dataset_property="aeroplane_val")
     trainDataloader = DataLoader(trainDataset, batch_size=1, shuffle=True)
     valDataloader = DataLoader(valDataset, batch_size=1, shuffle=True)
 
@@ -158,12 +157,12 @@ if __name__ == '__main__':
             for step in range(opt.steps):
                 # Select action, the author force terminal action if case actual IoU is higher than 0.5
                 if iou > 0.5:
-                    action = 6
+                    action = 5
                 else:
                     action = agent.select_action(state)
 
                 # Perform the action and observe new state
-                if action == 6:
+                if action == 5:
                     next_state = None
                     reward = get_reward_trigger(iou)
                     done = True
