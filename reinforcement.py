@@ -117,8 +117,8 @@ class ReplayMemory(object):
         return len(self.memory)
     
        
-def get_state(image, history, backbone):
-    im = transform(image[0]).unsqueeze(dim=0)
+def get_state(image, history, backbone, device):
+    im = transform(image[0]).unsqueeze(dim=0).to(device)
     feature = backbone(im).view(1, -1)
     history_vector = history.view(1, -1)
     state = torch.cat((feature, history_vector), 1)

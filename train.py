@@ -26,6 +26,7 @@ if __name__ == '__main__':
 
     # Device
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print("device", device)
 
     # Create dqn model & freeze backbone weight
     obs_dim, action_dim = 20*20*1024 + 6*4, 6
@@ -70,8 +71,8 @@ if __name__ == '__main__':
             region_image = img
             size_mask = imgShape
             offset = (0, 0)
-            history_vector = torch.zeros((4, 6))
-            state = get_state(region_image, history_vector, backbone)
+            history_vector = torch.zeros((4, 6), device=device)
+            state = get_state(region_image, history_vector, backbone, device)
             done = False
 
             for step in range(opt.steps):
@@ -100,7 +101,7 @@ if __name__ == '__main__':
                                                                     region_image, size_mask, action)
                     # update history vector and get next state
                     history_vector = update_history_vector(history_vector, action)
-                    next_state = get_state(region_image, history_vector, backbone)
+                    next_state = get_state(region_image, history_vector, backbone, device)
                     
                     # find the max bounding box in the region image
                     new_iou = findMaxBox(gt_masks, region_mask)
@@ -151,7 +152,7 @@ if __name__ == '__main__':
             size_mask = imgShape
             offset = (0, 0)
             history_vector = torch.zeros((4, 6))
-            state = get_state(region_image, history_vector, backbone)
+            state = get_state(region_image, history_vector, backbone, device)
             done = False
 
             for step in range(opt.steps):
@@ -170,7 +171,7 @@ if __name__ == '__main__':
                     offset, region_image, size_mask, region_mask = get_crop_image_and_mask(imgShape, offset,
                                                                     region_image, size_mask, action)
                     # Get next state
-                    next_state = get_state(region_image, history_vector, backbone)
+                    next_state = get_state(region_image, history_vector, backbone, device)
                     
                     # find the max bounding box in the region image
                     new_iou = findMaxBox(gt_masks, region_mask)
