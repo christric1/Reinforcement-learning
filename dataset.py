@@ -56,7 +56,7 @@ class yoloDataset(Dataset):
         image       = image.resize((nw, nh), Image.BICUBIC)
         new_image   = Image.new('RGB', (self.w, self.h), (128, 128, 128))
         new_image.paste(image, (dx, dy))
-        image_data  = np.transpose(np.array(new_image), (2, 0, 1))
+        image_data  = np.transpose(np.array(new_image, dtype=np.float32), (2, 0, 1))
 
         #-----------------------------------------------------#
         #   Make adjustments to the ground truth 

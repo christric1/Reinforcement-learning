@@ -25,11 +25,12 @@ if __name__ == '__main__':
 
     # Device
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = 'cpu'
 
     # Create dqn model & freeze backbone weight
     obs_dim, action_dim = 20*20*1024 + 6*4, 6
     backbone = Backbone(transition_channels=32, block_channels=32, n=4, phi='l', pretrained=True).to(device)
-    agent = DQNAgent(obs_dim, action_dim) 
+    agent = DQNAgent(obs_dim, action_dim, device=device)
     for param in backbone.parameters():
         param.requires_grad = False
 
@@ -47,6 +48,7 @@ if __name__ == '__main__':
     #---------------------------------------#
     for epoch in range(opt.epochs):
         pbar = tqdm(enumerate(trainDataloader), total=len(trainDataloader))
+        agent.train()
         for i, data in pbar:
             '''
                 labels = [nums of the img labels]
@@ -54,19 +56,98 @@ if __name__ == '__main__':
                 imgShape = (640, 640)
             '''
             img, target = data
-            labels, boxs = target["labels"].squeeze(dim=0), target["boxes"].squeeze(dim=0)
-            image = img.squeeze(dim=0)
-            imgShape = image.shape[1], image.shape[2]
+            labels, boxs = target["labels"], target["boxes"]
+            imgShape = img.shape[2], img.shape[3]
 
             # the iou part
             region_mask = np.ones(imgShape)
-            gt_masks = genBoxFromAnnotation(boxs, imgShape)
+            gt_masks = genBoxFromAnnotation(boxs[0], imgShape)
 
             # choose the max bouding box
             iou = findMaxBox(gt_masks, region_mask)
             
             # the initial part
-            region_image = image
+            region_image = img
+            size_mask = imgShape
+            offset = (0, 0)
+            history_vector = torch.zeros((4, 6))
+            state = get_state(region_image, history_vector, backbone)
+            done = False
+
+            for step in range(opt.steps):
+                '''
+                    Select action, the author force terminal action if case actual IoU is higher than 0.5
+                    action = 0, 1, 2, 3, 4, 5
+                    0 -> top left corner
+                    1 -> bottom left corner
+                    2 -> top right corner
+                    3 -> bottom right corner
+                    4 -> center
+                    5 -> break
+                '''
+                if iou > 0.5:
+                    action = 5
+                else:
+                    action = agent.select_action(state)
+
+                # Perform the action and observe new state
+                if action == 5:
+                    next_state = None
+                    reward = get_reward_trigger(iou)
+                    done = True
+                else:
+                    offset, region_image, size_mask, region_mask = get_crop_image_and_mask(imgShape, offset,
+                                                                    region_image, size_mask, action)
+                    # update history vector and get next state
+                    history_vector = update_history_vector(history_vector, action)
+                    next_state = get_state(region_image, history_vector, backbone)
+                    
+                    # find the max bounding box in the region image
+                    new_iou = findMaxBox(gt_masks, region_mask)
+                    reward = get_reward_movement(iou, new_iou)
+                    iou = new_iou
+                    
+                # Store the transition in memory
+                agent.memory.push(state, action, next_state, reward)
+                
+                # Move to the next state
+                state = next_state
+                
+                # Perform one step of the optimization (on the target network)
+                loss = agent.update_model()
+                update_cnt += 1
+
+                # Print
+                pbar.set_description((f"Epoch [{epoch+1}/{opt.epochs}]"))
+                pbar.set_postfix(loss=loss)
+
+                if update_cnt % target_update == 0:
+                    agent.target_hard_update()
+
+                if done:
+                    break
+
+            # end batch -------------------------------------------------------------
+        # end epoch ---------------------------------------------------------
+
+        # Validation
+        agent.eval()
+        pbar = tqdm(enumerate(valDataloader), total=len(trainDataloader))
+        for i, data in pbar:
+            img, target = data
+            labels, boxs = target["labels"], target["boxes"]
+            imgShape = img.shape[2], img.shape[3]
+
+            # the iou part
+            batchIou = []
+            region_mask = np.ones(imgShape)
+            gt_masks = genBoxFromAnnotation(boxs[0], imgShape)
+
+            # choose the max bouding box
+            iou = findMaxBox(gt_masks, region_mask)
+
+            # the initial part
+            region_image = img
             size_mask = imgShape
             offset = (0, 0)
             history_vector = torch.zeros((4, 6))
@@ -88,39 +169,19 @@ if __name__ == '__main__':
                 else:
                     offset, region_image, size_mask, region_mask = get_crop_image_and_mask(imgShape, offset,
                                                                     region_image, size_mask, action)
-                    # update history vector and get next state
-                    history_vector = update_history_vector(history_vector, action)
+                    # Get next state
                     next_state = get_state(region_image, history_vector, backbone)
                     
                     # find the max bounding box in the region image
                     new_iou = findMaxBox(gt_masks, region_mask)
                     reward = get_reward_movement(iou, new_iou)
                     iou = new_iou
-                    
-                # Store the transition in memory
-                agent.memory.push(state, action-1, next_state, reward)
-                
+
                 # Move to the next state
                 state = next_state
-                
-                # Perform one step of the optimization (on the target network)
-                loss = agent.update_model()
-                update_cnt += 1
 
-                # Print
-                pbar.set_description((f"Epoch [{epoch+1}/{opt.epochs}]"))
-                pbar.set_postfix(loss = loss.item())
-
-                if update_cnt % target_update == 0:
-                    agent.target_hard_update()
-
-                if done:
-                    break
-
-            # end batch -------------------------------------------------------------
-        # end epoch ---------------------------------------------------------
-
-        # Validation
-
-
+            batchIou.append(iou)
+        
+        print("IOU : ", np.mean(batchIou))
+        
     print("End Training\n")

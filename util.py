@@ -69,26 +69,26 @@ def get_crop_image_and_mask(original_shape, offset, region_image, size_mask, act
     region_mask = np.zeros(original_shape) # mask at original image 
     size_mask = (int(size_mask[0] * scale_subregion), int(size_mask[1] * scale_subregion)) # the size of croped image
 
-    if action == 1:
+    if action == 0:
         offset_aux = (0, 0)
-    elif action == 2:
+    elif action == 1:
         offset_aux = (0, int(size_mask[1] * scale_mask))
         offset = (offset[0], offset[1] + int(size_mask[1] * scale_mask))
-    elif action == 3:
+    elif action == 2:
         offset_aux = (int(size_mask[0] * scale_mask), 0)
         offset = (offset[0] + int(size_mask[0] * scale_mask), offset[1])
-    elif action == 4:
+    elif action == 3:
         offset_aux = (int(size_mask[0] * scale_mask), 
                       int(size_mask[1] * scale_mask))
         offset = (offset[0] + int(size_mask[0] * scale_mask),
                   offset[1] + int(size_mask[1] * scale_mask))
-    elif action == 5:
+    elif action == 4:
         offset_aux = (int(size_mask[0] * scale_mask / 2),
                       int(size_mask[0] * scale_mask / 2))
         offset = (offset[0] + int(size_mask[0] * scale_mask / 2),
                   offset[1] + int(size_mask[0] * scale_mask / 2))
         
-    region_image = region_image[offset_aux[0]:offset_aux[0] + size_mask[0],
+    region_image = region_image[:, :, offset_aux[0]:offset_aux[0] + size_mask[0],
                    offset_aux[1]:offset_aux[1] + size_mask[1]]
     region_mask[offset[0]:offset[0] + size_mask[0], offset[1]:offset[1] + size_mask[1]] = 1
 

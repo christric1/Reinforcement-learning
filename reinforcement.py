@@ -5,6 +5,7 @@ from nets.dqn import dqn
 
 import torch
 import torch.optim as optim
+import torchvision.transforms as transforms
 import torch.nn as nn
 
 # Transition
@@ -17,24 +18,25 @@ reward_movement_action = 1
 reward_terminal_action = 3
 iou_threshold = 0.5
 
-EPSILON = 0.9
+EPSILON = 0.5
 GAMMA = 0.90
+
+transform = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize((640, 640)),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5),(0.5, 0.5, 0.5))  #  numbers here need to be adjusted in future
+])
 
 
 class DQNAgent:
-    def __init__(self, obs_dim, action_dim, batch_size=16):
+    def __init__(self, obs_dim, action_dim, batch_size=16, device='cuda'):
         self.memory = ReplayMemory(1000)
         self.batch_size = batch_size
         
-        # device: cpu / gpu
-        self.device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu"
-        )
-        print("device: ", self.device)
-
         # networks: dqn, dqn_target
-        self.dqn = dqn(obs_dim, action_dim).to(self.device)
-        self.dqn_target = dqn(obs_dim, action_dim).to(self.device)
+        self.dqn = dqn(obs_dim, action_dim).to(device)
+        self.dqn_target = dqn(obs_dim, action_dim).to(device)
         self.dqn_target.load_state_dict(self.dqn.state_dict())
         self.dqn_target.eval()
         
@@ -42,15 +44,20 @@ class DQNAgent:
         self.optimizer = optim.Adam(self.dqn.parameters())
         self.criterion = nn.MSELoss()
 
+    def train(self):
+        self.dqn.train()
+
+    def eval(self):
+        self.dqn.eval()
 
     def select_action(self, state: np.ndarray) -> np.ndarray:
         if random.random() < EPSILON:
-            action = np.random.randint(1, 7)
+            action = torch.randint(0, 6, size=(1,)).squeeze()
         else:
             qval = self.dqn(state)
             _, predicted = torch.max(qval.data, 1)
-            action = predicted[0] + 1
-        return action
+            action = predicted[0]
+        return action.item()
 
     def update_model(self) -> torch.Tensor:
         if len(self.memory) < self.batch_size:
@@ -63,20 +70,21 @@ class DQNAgent:
         non_final_next_states = torch.cat([s for s in batch.next_state if s is not None])
 
         state_batch = torch.cat(batch.state)
-        action_batch = torch.cat(batch.action)
-        reward_batch = torch.cat(batch.reward)
+        action_batch = torch.tensor(batch.action).view(self.batch_size, -1)
+        reward_batch = torch.tensor(batch.reward)
 
-        state_action_values = self.policy_net(state_batch).gather(1, action_batch)
+        # torch.Size([16, 1])
+        state_action_values = self.dqn(state_batch).gather(1, action_batch)
 
         next_state_values = torch.zeros(self.batch_size)
         with torch.no_grad():
-            next_state_values[non_final_mask] = self.target_net(non_final_next_states).max(1)[0]
+            next_state_values[non_final_mask] = self.dqn_target(non_final_next_states).max(1)[0]
 
         # Compute the expected Q values
         expected_state_action_values = (next_state_values * GAMMA) + reward_batch
 
         # Compute loss
-        loss = self.criterion(state_action_values, expected_state_action_values)
+        loss = self.criterion(state_action_values.squeeze(), expected_state_action_values)
 
         # Optimize the model
         self.optimizer.zero_grad()
@@ -110,7 +118,8 @@ class ReplayMemory(object):
     
        
 def get_state(image, history, backbone):
-    feature = backbone(image).view(1, -1)
+    im = transform(image[0]).unsqueeze(dim=0)
+    feature = backbone(im).view(1, -1)
     history_vector = history.view(1, -1)
     state = torch.cat((feature, history_vector), 1)
     return state
