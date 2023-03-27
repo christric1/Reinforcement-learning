@@ -1,8 +1,9 @@
 import argparse
+from pathlib import Path
 from tqdm import tqdm
 
 from reinforcement import *
-from util import *
+from utils import *
 from dataset import *
 from nets.backbone import Backbone
 
@@ -19,9 +20,14 @@ if __name__ == '__main__':
     parser.add_argument('--steps', type=int, default=10)
     parser.add_argument('--batch-size', type=int, default=16, help='total batch size for all GPUs')
     parser.add_argument('--phi', type=str, default='l', help='type of yolov7')
+    parser.add_argument('--project', default='runs/train', help='save to project/name')
+    parser.add_argument('--name', default='exp', help='save to project/name')
     parser.add_argument('--img-size', type=int, default=[256, 256], help='image sizes')
-
+    
     opt = parser.parse_args()
+
+    # Result directary
+    save_dir = increment_path(Path(opt.project) / opt.name)  # increment run
 
     # Device
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -150,7 +156,7 @@ if __name__ == '__main__':
             region_image = img
             size_mask = imgShape
             offset = (0, 0)
-            history_vector = torch.zeros((4, 6))
+            history_vector = torch.zeros((4, 6), device=device)
             state = get_state(region_image, history_vector, backbone, device)
             done = False
 
@@ -183,5 +189,9 @@ if __name__ == '__main__':
             batchIou.append(iou)
         
         print("IOU : ", np.mean(batchIou))
-        
+    
+    # End training ---------------------------------------------------------
     print("End Training\n")
+    
+    # Save model
+    torch.save(agent.dqn, save_dir)
