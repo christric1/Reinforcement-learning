@@ -128,7 +128,8 @@ if __name__ == '__main__':
                 # Print & Record
                 pbar.set_description((f"Epoch [{epoch+1}/{opt.epochs}]"))
                 pbar.set_postfix(loss=loss)
-                writer.add_scalar('Loss/train', loss, update_cnt)
+                if loss:
+                    writer.add_scalar('Loss/train', loss, update_cnt)
 
                 if update_cnt % target_update == 0:
                     agent.target_hard_update()
