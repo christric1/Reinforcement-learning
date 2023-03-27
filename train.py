@@ -26,12 +26,12 @@ if __name__ == '__main__':
 
     # Device
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print("device", device)
+    print("device: ", device)
 
     # Create dqn model & freeze backbone weight
     obs_dim, action_dim = 20*20*1024 + 6*4, 6
     backbone = Backbone(transition_channels=32, block_channels=32, n=4, phi='l', pretrained=True).to(device)
-    agent = DQNAgent(obs_dim, action_dim, device=device)
+    agent = DQNAgent(obs_dim, action_dim, device)
     for param in backbone.parameters():
         param.requires_grad = False
 
@@ -100,7 +100,7 @@ if __name__ == '__main__':
                     offset, region_image, size_mask, region_mask = get_crop_image_and_mask(imgShape, offset,
                                                                     region_image, size_mask, action)
                     # update history vector and get next state
-                    history_vector = update_history_vector(history_vector, action)
+                    history_vector = update_history_vector(history_vector, action).to(device)
                     next_state = get_state(region_image, history_vector, backbone, device)
                     
                     # find the max bounding box in the region image
