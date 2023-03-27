@@ -174,5 +174,6 @@ poetry.toml
 pyrightconfig.json
 
 Pascal2007
+models
 
 # End of https://www.toptal.com/developers/gitignore/api/python
