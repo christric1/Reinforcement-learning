@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
 from tqdm import tqdm
+from torch.utils.tensorboard import SummaryWriter
 
 from reinforcement import *
 from utils import *
@@ -28,6 +29,7 @@ if __name__ == '__main__':
 
     # Result directary
     save_dir = increment_path(Path(opt.project) / opt.name)  # increment run
+    writer = SummaryWriter(save_dir + "/runs")
 
     # Device
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -123,9 +125,10 @@ if __name__ == '__main__':
                 loss = agent.update_model()
                 update_cnt += 1
 
-                # Print
+                # Print & Record
                 pbar.set_description((f"Epoch [{epoch+1}/{opt.epochs}]"))
                 pbar.set_postfix(loss=loss)
+                writer.add_scalar('Loss/train', loss, update_cnt)
 
                 if update_cnt % target_update == 0:
                     agent.target_hard_update()
@@ -189,12 +192,10 @@ if __name__ == '__main__':
 
                 if done:
                     break
+            
+            # Record result
+            writer.add_scalar('IoU/Val', iou, i)
 
-            batchIou.append(iou)
-
-        # Print result
-        print("IOU : ", np.mean(batchIou))
-    
     # End training ---------------------------------------------------------
     print("End Training\n")
     

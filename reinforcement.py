@@ -1,4 +1,5 @@
 import random
+import math
 import numpy as np
 from collections import namedtuple
 from nets.dqn import dqn
@@ -18,8 +19,10 @@ reward_movement_action = 1
 reward_terminal_action = 3
 iou_threshold = 0.5
 
-EPSILON = 0.5
 GAMMA = 0.90
+EPS_START = 0.9
+EPS_END = 0.05
+EPS_DECAY = 1000
 
 transform = transforms.Compose([
             transforms.ToPILImage(),
@@ -45,6 +48,8 @@ class DQNAgent:
         self.optimizer = optim.Adam(self.dqn.parameters())
         self.criterion = nn.MSELoss()
 
+        self.step_done = 0
+
     def train(self):
         self.dqn.train()
 
@@ -52,12 +57,15 @@ class DQNAgent:
         self.dqn.eval()
 
     def select_action(self, state: np.ndarray) -> np.ndarray:
-        if random.random() < EPSILON:
+        eps_threshold = EPS_END + (EPS_START - EPS_END) * math.exp(-1. * self.step_done / EPS_DECAY)
+        if random.random() < eps_threshold:
             action = torch.randint(0, 6, size=(1,)).squeeze()
         else:
             qval = self.dqn(state)
             _, predicted = torch.max(qval.data, 1)
             action = predicted[0]
+        
+        self.step_done += 1
         return action.item()
 
     def update_model(self) -> torch.Tensor:
