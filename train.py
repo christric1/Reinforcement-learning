@@ -31,7 +31,7 @@ if __name__ == '__main__':
     # Create dqn model & freeze backbone weight
     obs_dim, action_dim = 20*20*1024 + 6*4, 6
     backbone = Backbone(transition_channels=32, block_channels=32, n=4, phi='l', pretrained=True).to(device)
-    agent = DQNAgent(obs_dim, action_dim, device)
+    agent = DQNAgent(obs_dim, action_dim, opt.batch_size, device)
     for param in backbone.parameters():
         param.requires_grad = False
 

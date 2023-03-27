@@ -33,6 +33,7 @@ class DQNAgent:
     def __init__(self, obs_dim, action_dim, batch_size=16, device='cuda'):
         self.memory = ReplayMemory(1000)
         self.batch_size = batch_size
+        self.device = device
         
         # networks: dqn, dqn_target
         self.dqn = dqn(obs_dim, action_dim).to(device)
@@ -70,13 +71,13 @@ class DQNAgent:
         non_final_next_states = torch.cat([s for s in batch.next_state if s is not None])
 
         state_batch = torch.cat(batch.state)
-        action_batch = torch.tensor(batch.action).view(self.batch_size, -1)
-        reward_batch = torch.tensor(batch.reward)
+        action_batch = torch.tensor(batch.action, device=self.device).view(self.batch_size, -1)
+        reward_batch = torch.tensor(batch.reward, device=self.device)
 
         # torch.Size([16, 1])
         state_action_values = self.dqn(state_batch).gather(1, action_batch)
 
-        next_state_values = torch.zeros(self.batch_size)
+        next_state_values = torch.zeros(self.batch_size, device=self.device)
         with torch.no_grad():
             next_state_values[non_final_mask] = self.dqn_target(non_final_next_states).max(1)[0]
 
