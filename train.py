@@ -202,4 +202,4 @@ if __name__ == '__main__':
     print("End Training\n")
     
     # Save model
-    torch.save(agent.dqn, save_dir)
+    torch.save(agent.dqn, save_dir + "/model.pth")
