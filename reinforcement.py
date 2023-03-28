@@ -76,7 +76,8 @@ class DQNAgent:
         batch = Transition(*zip(*transitions))
 
         non_final_mask = torch.tensor(tuple(map(lambda s: s is not None, batch.next_state)), dtype=torch.bool)
-        non_final_next_states = torch.cat([s for s in batch.next_state if s is not None])
+        if len(batch.next_state) != 0:
+            non_final_next_states = torch.cat([s for s in batch.next_state if s is not None])
 
         state_batch = torch.cat(batch.state)
         action_batch = torch.tensor(batch.action, device=self.device).view(self.batch_size, -1)
