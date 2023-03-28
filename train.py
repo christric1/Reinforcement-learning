@@ -49,6 +49,7 @@ if __name__ == '__main__':
     valDataloader = DataLoader(valDataset, batch_size=1, shuffle=True)
 
     update_cnt = 0
+    val_cnt = 0
     target_update = 10
 
     #---------------------------------------#
@@ -195,7 +196,8 @@ if __name__ == '__main__':
                     break
             
             # Record result
-            writer.add_scalar('IoU/Val', iou, i)
+            val_cnt += 1
+            writer.add_scalar('IoU/Val', iou, val_cnt)
 
     # End training ---------------------------------------------------------
     print("End Training\n")
