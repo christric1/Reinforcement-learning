@@ -143,8 +143,7 @@ if __name__ == '__main__':
 
         # Validation
         agent.eval()
-        pbar = tqdm(enumerate(valDataloader), total=len(trainDataloader))
-        for i, data in pbar:
+        for i, data in enumerate(valDataloader):
             img, target = data
             labels, boxs = target["labels"], target["boxes"]
             imgShape = img.shape[2], img.shape[3]
