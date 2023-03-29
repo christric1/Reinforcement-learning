@@ -12,7 +12,7 @@ from nets.backbone import Backbone
 
 
 # TestDataset & TestLoader
-testDataset = yoloDataset("Pascal2007/VOCtest_06-Nov-2007/VOCdevkit", [256, 256], dataset_property="aeroplane_train")
+testDataset = yoloDataset("Pascal2007/VOCtest_06-Nov-2007/VOCdevkit", [256, 256], dataset_property="aeroplane_test")
 testDataloader = DataLoader(testDataset, batch_size=1, shuffle=True)
 
 # Parameter
@@ -44,6 +44,8 @@ for i, data in enumerate(testDataloader):
     iou = findMaxBox(gt_masks, region_mask)
 
     region_image = img
+    size_mask = imgShape
+    offset = (0, 0)
     history_vector = torch.zeros((4, 6), device=device)
     state = get_state(region_image, history_vector, backbone, device)
     done = False
@@ -77,7 +79,7 @@ for i, data in enumerate(testDataloader):
             break
     
     # Get box
-    nonzero = torch.nonzero(region_mask)
+    nonzero = torch.nonzero(torch.tensor(region_mask))
     top_left = nonzero[0]
     bottom_right = nonzero[-1]
     xmin, ymin = top_left.tolist()
@@ -88,7 +90,7 @@ for i, data in enumerate(testDataloader):
     img = np.transpose(img, (1, 2, 0))
     fig = plt.imshow(img)
     fig.axes.add_patch(bbox_to_rect((xmin, ymin, xmax, ymax), 'blue'))
-    fig.axes.add_patch(bbox_to_rect(boxs[0], 'green'))
+    fig.axes.add_patch(bbox_to_rect(boxs[0].squeeze(dim=0)[0], 'green'))
     plt.show()
 
     input("按 Enter 鍵繼續...")
